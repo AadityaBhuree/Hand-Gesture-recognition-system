@@ -1,0 +1,98 @@
+
+Problem Statement
+-----------------
+
+Develop a system to detect and recognize handwritten characters on vehicle number plates from images. The goal is to:
+
+- Localize the number plate region in input images (detection).
+- Segment individual characters from the localized plate (segmentation).
+- Recognize each segmented character using a machine learning model (recognition).
+
+Project Requirements
+--------------------
+
+- Input vehicle images in JPG, PNG, or BMP format.
+- Detect handwritten number plates under varying lighting, angles, blur, and noise.
+- Crop the plate region before character segmentation.
+- Segment individual handwritten characters from the cropped plate.
+- Recognize each character and output the full plate string.
+- Provide confidence scores for each predicted character.
+- Include preprocessing, training, inference, and evaluation scripts.
+- Report full-plate accuracy, character-level accuracy, confusion matrix, and inference time.
+
+Requirements
+------------
+
+- Support images with varying lighting, angles, and noise.
+- Handle different handwriting styles and character spacings.
+- Provide the final plate string as output and confidence scores per character.
+
+Deliverables
+------------
+
+- Code for data preprocessing, plate localization, character segmentation, and recognition.
+- Trained model weights and instructions to reproduce training.
+- Sample dataset and evaluation script that reports accuracy and per-character metrics.
+
+Evaluation
+----------
+
+Evaluate on a held-out test set and report:
+
+- Plate recognition accuracy (full-string match).
+- Character-level accuracy and confusion matrix.
+- Inference time per image.
+
+Notes
+-----
+
+Flowchart
+---------
+
+```text
+Start
+	|
+	v
+Capture Image
+	|
+	v
+Preprocess Image
+	|
+	v
+Detect Number Plate
+	|
+	v
+Crop Plate Region
+	|
+	v
+Segment Characters
+	|
+	v
+Recognize Characters
+	|
+	v
+Assemble Plate String
+	|
+	v
+Store / Display Result
+	|
+	v
+End
+```
+
+Focus on robustness to handwriting variability; consider data augmentation and transfer learning from pretrained OCR models.
+
+Workflow
+--------
+
+```text
+CAMERA ----> CAPTURE -> PREPROCESSING -> ISOLATE DIGITS -> LEARN -> TRAIN DATA -> OCR -> PLAUSI -> DATABASE
+			^      |                                 |                             ^
+			|      V                                 |_____________________________|
+		IMAGE <--SAVE IMAGE
+     DIRECTORY        
+```
+
+
+-----
+

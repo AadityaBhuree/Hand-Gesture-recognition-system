@@ -1,0 +1,4 @@
+-r requirements.txt
+matplotlib==3.10.9
+notebook==7.5.6
+pytest==8.3.4
