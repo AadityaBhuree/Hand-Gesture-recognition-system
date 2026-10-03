@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 import os
 import io
@@ -32,15 +32,33 @@ def get_sample_image():
             SAMPLE_IMG = x_test[0]
             SAMPLE_LABEL = int(y_test[0])
         except Exception as e:
-            print(f"Failed to load MNIST sample: {e}")
+            print(f"Failed to load MNIST sample from keras.datasets: {e}")
+            # Fallback to an offline synthetic 28x28 sample digit (e.g. digit 7)
+            import numpy as np
+            synthetic = np.zeros((28, 28), dtype=np.uint8)
+            synthetic[5:7, 6:22] = 255  # top bar
+            for i in range(16):
+                synthetic[7 + i, 20 - i] = 255  # diagonal
+            SAMPLE_IMG = synthetic
+            SAMPLE_LABEL = 7
     return SAMPLE_IMG, SAMPLE_LABEL
 
 
 @app.route('/')
 def index():
+    accept = request.headers.get('Accept', '')
+    if request.args.get('format') == 'json' or ('application/json' in accept and 'text/html' not in accept):
+        return api_spec()
+    return render_template('index.html')
+
+
+@app.route('/api')
+def api_spec():
     return jsonify({
         'message': 'Handwritten Digit Recognition API',
         'endpoints': {
+            'GET /': 'Interactive HTML5 Drawing Canvas and Telemetry UI.',
+            'GET /api': 'Returns this API specification.',
             'GET /predict': 'Returns prediction for a sample MNIST image.',
             'POST /predict': 'Submit an image file (form-data "file") or JSON with a base64 string under key "image".'
         }

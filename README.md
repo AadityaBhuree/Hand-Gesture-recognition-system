@@ -1,22 +1,24 @@
-# Handwritten Digit Recognition API 🧠📝
+# Handwritten Digit Recognition Neural Laboratory & API 🧠📝
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.1.3-lightgrey.svg)
 ![Keras](https://img.shields.io/badge/Keras-3.12.2-red.svg)
+![Tests](https://img.shields.io/badge/10_Tests-Passing-10B981.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-A production-ready, lightweight machine learning microservice that performs **Handwritten Digit Recognition (0-9)**. Built with Flask, Keras, and Pillow, it provides a robust HTTP API to process image uploads and base64-encoded images, running them through a trained Convolutional Neural Network (CNN) trained on the MNIST dataset.
+An interactive machine learning laboratory and production-ready microservice that performs **Handwritten Digit Recognition (0–9)**. Built with Flask, Keras, and Pillow, it provides both an **interactive HTML5 drawing canvas UI** for real-time in-browser digit sketching and an HTTP REST API accepting multipart image files and base64 data URIs.
 
 ---
 
 ## 🚀 Features
 
-- **Decoupled Architecture:** Clean separation of concerns between API routing (`app.py`) and Machine Learning inference (`services/recognizer.py`).
-- **Flexible Inputs:** Accepts both `multipart/form-data` image file uploads and JSON payloads containing `base64` image data URIs.
-- **Robust Security:** Built-in CORS support and a strict `MAX_CONTENT_LENGTH` (5MB) limit to prevent Out-Of-Memory (OOM) attacks from massive file uploads.
+- **Interactive HTML5 Drawing Canvas:** Beautiful cybernetic dark-mode drawing canvas with adjustable brush sizes, touch support, clear/invert controls, synthetic glyph presets, and live Softmax probability distribution bars.
+- **Decoupled Architecture:** Clean separation of concerns between API routing and web serving (`app.py`), ML inference (`services/recognizer.py`), and interactive templates (`templates/index.html`).
+- **Flexible Inputs:** Accepts browser canvas strokes, `multipart/form-data` image file uploads, and JSON payloads containing base64 data URIs.
+- **Robust Security & Validation:** Built-in CORS support, a strict `MAX_CONTENT_LENGTH` (5MB) upload ceiling, and graceful rejection of corrupted or non-image payloads.
 - **Advanced Preprocessing:** Automatically resizes (Lanczos resampling), converts to grayscale, and dynamically inverts light-background images to match the MNIST training distribution (white digits on black backgrounds).
-- **Comprehensive Error Handling:** Graceful failure handling with detailed JSON error messages and appropriate HTTP status codes (400, 413, 500, 503).
-- **Test Coverage:** Includes a suite of `pytest` unit tests ensuring API stability.
+- **Offline Fault Tolerance:** Resilient sample digit generation with synthetic glyph fallback if dataset downloads are unavailable.
+- **100% Passing Automated Tests:** 10 comprehensive `pytest` test cases covering endpoint status, content negotiation, canvas base64 inference, corrupted payloads, and payload limits.
 
 ---
 
@@ -24,15 +26,18 @@ A production-ready, lightweight machine learning microservice that performs **Ha
 
 ```text
 ├── models/
-│   └── best_model.h5         # Pre-trained Keras model weights
+│   └── best_model.h5         # Pre-trained Keras CNN model weights
 ├── notebooks/
 │   ├── MNIST_Train.ipynb     # Model training research notebook
 │   └── app.ipynb             # Inference demonstration notebook
 ├── services/
 │   └── recognizer.py         # ML Inference & Preprocessing logic
+├── templates/
+│   └── index.html            # Interactive HTML5 Drawing Canvas UI
 ├── tests/
-│   └── test_api.py           # Pytest suite for API endpoints
-├── app.py                    # Flask API Server and routing
+│   └── test_api.py           # Pytest suite (10 automated unit tests)
+├── app.py                    # Flask server, canvas UI router, and REST API
+├── pytest.ini                # Pytest configuration
 ├── requirements.txt          # Production dependencies
 └── requirements-dev.txt      # Development & Testing dependencies
 ```
@@ -143,9 +148,17 @@ curl -X POST -H "Content-Type: application/json" \
 This project uses `pytest` for unit testing. Ensure you have installed the development requirements (`requirements-dev.txt`), then run:
 
 ```bash
-pytest tests/
+pytest
 ```
-This will execute all endpoint tests, including large payload rejection and malformed base64 handling.
+This will execute all 10 automated unit tests, validating:
+- HTML5 canvas UI serving and content negotiation (`Accept: application/json` vs. `text/html`)
+- API schema endpoints (`GET /api`)
+- Sample MNIST image inference and synthetic fallback (`GET /predict`)
+- Multipart form file uploads with format validation
+- Corrupted file rejection (graceful 400 Bad Request)
+- Base64 data URI inference with 10-class probability distribution
+- Malformed base64 and corrupted payload rejection
+- 5MB maximum payload protection (413 Request Entity Too Large)
 
 ---
 

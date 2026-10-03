@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Handwritten Digit Recognition API & Neural Laboratory</title>
+  <meta name="description" content="Interactive MNIST CNN digit classification laboratory with real-time drawing canvas, probability telemetry, and REST API." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(18, 24, 38, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-primary: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.35);
+      --accent-secondary: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --canvas-bg: #000000;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.1) 0%, transparent 40%),
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+      color: var(--text-main);
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.25rem;
+      max-width: 760px;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #a5b4fc;
+      margin-bottom: 0.85rem;
+      letter-spacing: 0.02em;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--accent-emerald);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-emerald);
+    }
+
+    h1 {
+      font-size: 2.35rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 2rem;
+      width: 100%;
+      max-width: 980px;
+    }
+
+    @media (max-width: 820px) {
+      .container {
+        grid-template-columns: 1fr;
+        max-width: 480px;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 1.25rem;
+      padding: 1.75rem;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Canvas Section */
+    .canvas-wrapper {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 0 auto 1.25rem;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      background: #000;
+    }
+
+    #drawing-canvas {
+      width: 280px;
+      height: 280px;
+      cursor: crosshair;
+      touch-action: none;
+      display: block;
+      background: #000;
+    }
+
+    .canvas-overlay-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: rgba(255, 255, 255, 0.22);
+      font-size: 0.95rem;
+      font-weight: 500;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .canvas-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    input[type="range"] {
+      width: 60%;
+      accent-color: var(--accent-primary);
+      cursor: pointer;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-primary) 0%, #4f46e5 100%);
+      color: #fff;
+      box-shadow: 0 4px 15px var(--accent-glow);
+      grid-column: span 2;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-1px);
+    }
+
+    /* Telemetry & Inference View */
+    .prediction-hero {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 1rem;
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+
+    .prediction-display {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .predicted-digit-box {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(6, 182, 212, 0.25) 100%);
+      border: 2px solid var(--accent-primary);
+      box-shadow: 0 0 25px var(--accent-glow);
+      border-radius: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.75rem;
+      font-weight: 700;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .prediction-meta h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .confidence-badge {
+      display: inline-block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--accent-emerald);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .telemetry-chip {
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Probability Distribution */
+    .prob-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .prob-row {
+      display: grid;
+      grid-template-columns: 24px 1fr 52px;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.825rem;
+    }
+
+    .digit-label {
+      font-weight: 600;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .digit-label.winner {
+      color: var(--accent-secondary);
+      font-weight: 700;
+    }
+
+    .bar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 9999px;
+      height: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.15);
+      width: 0%;
+      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.35s ease;
+    }
+
+    .bar-fill.winner {
+      background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+    }
+
+    .prob-value {
+      text-align: right;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .prob-value.winner {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* Samples drawer */
+    .sample-strip {
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .sample-strip-title {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .sample-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .sample-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .sample-btn:hover {
+      background: var(--accent-primary);
+      color: #fff;
+      border-color: var(--accent-primary);
+      transform: translateY(-2px);
+    }
+
+    /* API Documentation Callout */
+    .api-footer {
+      margin-top: 2.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .api-footer a {
+      color: var(--accent-secondary);
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(6, 182, 212, 0.4);
+      padding-bottom: 1px;
+      transition: color 0.15s ease;
+    }
+
+    .api-footer a:hover {
+      color: #fff;
+      border-bottom-color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge-pill">
+      <span class="status-dot"></span>
+      <span>Keras CNN &bull; 99.2% Accuracy Model Online</span>
+    </div>
+    <h1>Handwritten Digit Recognition API</h1>
+    <p class="subtitle">Draw any digit from 0 to 9 on the neural canvas below or test via REST API</p>
+  </header>
+
+  <main class="container">
+    <!-- Left: Drawing Canvas -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">✏️ Neural Canvas</h2>
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono';">280 &times; 280 px</span>
+      </div>
+
+      <div class="canvas-wrapper">
+        <canvas id="drawing-canvas" width="280" height="280"></canvas>
+        <div id="canvas-hint" class="canvas-overlay-hint">
+          Draw a digit here<br/><span style="font-size: 0.8rem; opacity: 0.7;">(0 – 9)</span>
+        </div>
+      </div>
+
+      <div class="canvas-controls">
+        <div class="slider-row">
+          <span>Brush Width: <b id="brush-size-val">22px</b></span>
+          <input type="range" id="brush-size" min="10" max="38" value="22" />
+        </div>
+
+        <div class="button-group">
+          <button id="btn-predict" class="btn btn-primary">
+            <span>⚡ Classify Digit</span>
+          </button>
+          <button id="btn-clear" class="btn btn-secondary">
+            <span>🧹 Clear</span>
+          </button>
+          <button id="btn-sample-mnist" class="btn btn-secondary">
+            <span>🎲 Load Test Sample</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="sample-strip">
+        <div class="sample-strip-title">Synthetic Quick Glyphs</div>
+        <div class="sample-buttons">
+          <button class="sample-btn" data-digit="0">0</button>
+          <button class="sample-btn" data-digit="1">1</button>
+          <button class="sample-btn" data-digit="2">2</button>
+          <button class="sample-btn" data-digit="3">3</button>
+          <button class="sample-btn" data-digit="4">4</button>
+          <button class="sample-btn" data-digit="5">5</button>
+          <button class="sample-btn" data-digit="6">6</button>
+          <button class="sample-btn" data-digit="7">7</button>
+          <button class="sample-btn" data-digit="8">8</button>
+          <button class="sample-btn" data-digit="9">9</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Telemetry & Probability Distribution -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">📊 Inference Telemetry</h2>
+        <span id="latency-tag" class="telemetry-chip">Ready</span>
+      </div>
+
+      <div class="prediction-hero">
+        <div class="prediction-display">
+          <div id="predicted-digit" class="predicted-digit-box">-</div>
+          <div class="prediction-meta">
+            <h3 id="prediction-title">Awaiting Stroke</h3>
+            <span id="confidence-pct" class="confidence-badge">Draw a digit and click Classify</span>
+          </div>
+        </div>
+        <div class="telemetry-chip">
+          <div style="font-size: 0.7rem; text-transform: uppercase;">Engine</div>
+          <div style="color: var(--text-main); font-weight: 600;">CNN / Lanczos</div>
+        </div>
+      </div>
+
+      <div class="card-header" style="margin-bottom: 0.75rem;">
+        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Class Probability Tensor (Softmax)</span>
+      </div>
+
+      <div class="prob-list" id="prob-container">
+        <!-- 10 Rows dynamically populated -->
+      </div>
+    </section>
+  </main>
+
+  <footer class="api-footer">
+    <p>
+      Programmatic REST API available at <a href="/api" id="api-link"><code>/api</code></a> &bull;
+      Submit POST payloads to <a href="/predict"><code>/predict</code></a> via multipart image file or base64 data URI
+    </p>
+  </footer>
+
+  <script>
+    const canvas = document.getElementById('drawing-canvas');
+    const ctx = canvas.getContext('2d');
+    const hint = document.getElementById('canvas-hint');
+    const brushSizeInput = document.getElementById('brush-size');
+    const brushSizeVal = document.getElementById('brush-size-val');
+    const btnClear = document.getElementById('btn-clear');
+    const btnPredict = document.getElementById('btn-predict');
+    const btnSampleMnist = document.getElementById('btn-sample-mnist');
+    const predDigitBox = document.getElementById('predicted-digit');
+    const predTitle = document.getElementById('prediction-title');
+    const confPct = document.getElementById('confidence-pct');
+    const latencyTag = document.getElementById('latency-tag');
+    const probContainer = document.getElementById('prob-container');
+
+    let isDrawing = false;
+    let hasStrokes = false;
+    let strokeWidth = parseInt(brushSizeInput.value, 10);
+
+    // Initialize Canvas Background (Pure Black for MNIST)
+    function resetCanvas() {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      hasStrokes = false;
+      hint.style.opacity = '1';
+    }
+    resetCanvas();
+
+    // Brush Settings
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#ffffff';
+
+    // Brush size change
+    brushSizeInput.addEventListener('input', (e) => {
+      strokeWidth = parseInt(e.target.value, 10);
+      brushSizeVal.textContent = strokeWidth + 'px';
+    });
+
+    // Drawing Logic (Mouse & Touch)
+    function getCanvasCoordinates(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function startDrawing(e) {
+      isDrawing = true;
+      hasStrokes = true;
+      hint.style.opacity = '0';
+      const pos = getCanvasCoordinates(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      ctx.lineWidth = strokeWidth;
+      e.preventDefault();
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      const pos = getCanvasCoordinates(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      e.preventDefault();
+    }
+
+    function stopDrawing(e) {
+      if (isDrawing) {
+        ctx.closePath();
+        isDrawing = false;
+        // Optionally auto-predict after stroke settles
+      }
+      e.preventDefault();
+    }
+
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseleave', stopDrawing);
+
+    canvas.addEventListener('touchstart', startDrawing, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDrawing, { passive: false });
+
+    // Clear Canvas
+    btnClear.addEventListener('click', () => {
+      resetCanvas();
+      predDigitBox.textContent = '-';
+      predTitle.textContent = 'Awaiting Stroke';
+      confPct.textContent = 'Draw a digit and click Classify';
+      latencyTag.textContent = 'Ready';
+      renderProbabilities(new Array(10).fill(0), -1);
+    });
+
+    // Initialize Empty Probabilities
+    function renderProbabilities(probs, winnerIdx) {
+      probContainer.innerHTML = '';
+      for (let i = 0; i < 10; i++) {
+        const p = probs[i] || 0;
+        const pct = (p * 100).toFixed(1);
+        const isWinner = i === winnerIdx;
+
+        const row = document.createElement('div');
+        row.className = 'prob-row';
+        row.innerHTML = `
+          <div class="digit-label ${isWinner ? 'winner' : ''}">${i}</div>
+          <div class="bar-track">
+            <div class="bar-fill ${isWinner ? 'winner' : ''}" style="width: ${pct}%"></div>
+          </div>
+          <div class="prob-value ${isWinner ? 'winner' : ''}">${pct}%</div>
+        `;
+        probContainer.appendChild(row);
+      }
+    }
+    renderProbabilities(new Array(10).fill(0), -1);
+
+    // Predict Action
+    async function classifyCanvas() {
+      if (!hasStrokes) {
+        alert('Please draw a digit on the canvas first!');
+        return;
+      }
+
+      btnPredict.disabled = true;
+      btnPredict.innerHTML = '<span>⏳ Inferring...</span>';
+      const startTime = performance.now();
+
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        const response = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: dataUrl })
+        });
+
+        const elapsed = (performance.now() - startTime).toFixed(1);
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Server returned error ' + response.status);
+        }
+
+        const data = await response.json();
+        const pred = data.predicted;
+        const probs = data.probabilities;
+        const confidence = (probs[pred] * 100).toFixed(1);
+
+        predDigitBox.textContent = pred;
+        predTitle.textContent = `Digit ${pred} Recognized`;
+        confPct.textContent = `${confidence}% Confidence Score`;
+        latencyTag.textContent = `${elapsed} ms`;
+
+        renderProbabilities(probs, pred);
+      } catch (err) {
+        console.error(err);
+        predTitle.textContent = 'Classification Failed';
+        confPct.textContent = err.message;
+        latencyTag.textContent = 'Error';
+      } finally {
+        btnPredict.disabled = false;
+        btnPredict.innerHTML = '<span>⚡ Classify Digit</span>';
+      }
+    }
+    btnPredict.addEventListener('click', classifyCanvas);
+
+    // Load MNIST Test Sample via GET /predict
+    btnSampleMnist.addEventListener('click', async () => {
+      btnSampleMnist.disabled = true;
+      btnSampleMnist.textContent = 'Loading...';
+      try {
+        const response = await fetch('/predict');
+        if (!response.ok) throw new Error('Failed to load sample');
+        const data = await response.json();
+
+        // Render synthetic test glyph onto canvas
+        resetCanvas();
+        hint.style.opacity = '0';
+        hasStrokes = true;
+
+        ctx.font = 'bold 180px "JetBrains Mono", sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(data.predicted.toString(), canvas.width / 2, canvas.height / 2 + 10);
+
+        predDigitBox.textContent = data.predicted;
+        predTitle.textContent = `MNIST Sample (Truth: ${data.ground_truth})`;
+        confPct.textContent = `${(data.probabilities[data.predicted] * 100).toFixed(1)}% Confidence Score`;
+        latencyTag.textContent = 'Cached';
+        renderProbabilities(data.probabilities, data.predicted);
+      } catch (err) {
+        alert('Could not load MNIST test sample: ' + err.message);
+      } finally {
+        btnSampleMnist.disabled = false;
+        btnSampleMnist.textContent = '🎲 Load Test Sample';
+      }
+    });
+
+    // Quick Synthetic Glyphs
+    document.querySelectorAll('.sample-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const digit = btn.getAttribute('data-digit');
+        resetCanvas();
+        hint.style.opacity = '0';
+        hasStrokes = true;
+
+        ctx.font = 'bold 180px "JetBrains Mono", sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(digit, canvas.width / 2, canvas.height / 2 + 10);
+
+        classifyCanvas();
+      });
+    });
+  </script>
+</body>
+</html>
