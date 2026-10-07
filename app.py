@@ -27,7 +27,7 @@ def get_sample_image():
     global SAMPLE_IMG, SAMPLE_LABEL
     if SAMPLE_IMG is None:
         try:
-            from keras.datasets import mnist
+            from keras.datasets import mnist  # pyright: ignore[reportMissingImports] # type: ignore
             (_, _), (x_test, y_test) = mnist.load_data()
             SAMPLE_IMG = x_test[0]
             SAMPLE_LABEL = int(y_test[0])
