@@ -4,6 +4,8 @@
 ![Flask](https://img.shields.io/badge/Flask-3.1.3-lightgrey.svg)
 ![Keras](https://img.shields.io/badge/Keras-3.12.2-red.svg)
 ![Tests](https://img.shields.io/badge/10_Tests-Passing-10B981.svg)
+[![CI](https://github.com/AadityaBhuree/Hand-Gesture-recognition-system/actions/workflows/ci.yml/badge.svg)](https://github.com/AadityaBhuree/Hand-Gesture-recognition-system/actions/workflows/ci.yml)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 An interactive machine learning laboratory and production-ready microservice that performs **Handwritten Digit Recognition (0–9)**. Built with Flask, Keras, and Pillow, it provides both an **interactive HTML5 drawing canvas UI** for real-time in-browser digit sketching and an HTTP REST API accepting multipart image files and base64 data URIs.
@@ -140,6 +142,22 @@ curl -X POST -H "Content-Type: application/json" \
   "probabilities": [0.01, 0.0, 0.0, 0.95, 0.0, 0.01, 0.0, 0.03, 0.0, 0.0]
 }
 ```
+
+---
+
+## 🐳 Docker Deployment
+
+Run the digit laboratory microservice in an isolated, production-ready container:
+
+```bash
+# Build the container
+docker build -t mnist-digit-lab .
+
+# Run container on port 5000
+docker run -d -p 5000:5000 --name digit_app mnist-digit-lab
+```
+
+Open `http://localhost:5000` to access the drawing canvas interface.
 
 ---
 
